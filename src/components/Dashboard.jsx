@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchCourses } from '../slices/coursesSlice';
 import { fetchStudents } from '../slices/studentsSlice';
-import { Grid, Card, CardContent, Typography, Box, Chip, Divider, Button } from '@mui/material';
+import { Card, CardContent, Typography, Box, Chip, Divider, Button } from '@mui/material';
 
 const events = [
   { date: 'Tue, 6 Feb', title: 'School President Elections', time: '11:00 AM - 12:30 PM', tag: 'Today' },
@@ -58,9 +58,12 @@ function Dashboard() {
   return (
     <Box sx={{ width: '100%', mx: 0, px: 0 }}>
       {/* Top stats cards (side by side, responsive) */}
-      <Grid container spacing={3} mb={2}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 2 }}>
         {stats.map((s) => (
-          <Grid item xs={12} sm={6} md={3} key={s.label}>
+          <Box key={s.label} sx={{ 
+            width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(25% - 18px)' },
+            minWidth: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(25% - 18px)' }
+          }}>
             <Card sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 2, py: 3, boxShadow: 3, background: s.bg }}>
               <Box sx={{ color: s.color }}>{s.icon}</Box>
               <Box>
@@ -68,12 +71,12 @@ function Dashboard() {
                 <Typography variant="body2" color="text.secondary" fontWeight={600}>{s.label.toUpperCase()}</Typography>
               </Box>
             </Card>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
       {/* Courses Overview & Recent Students (full width) */}
-      <Grid container spacing={3} mb={2}>
-        <Grid item xs={12} md={6}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 2 }}>
+        <Box sx={{ width: { xs: '100%', md: 'calc(50% - 12px)' } }}>
           <Card sx={{ boxShadow: 2, borderRadius: 3 }}>
             <CardContent>
               <Typography variant="h6" fontWeight={700} mb={2}>Courses Overview</Typography>
@@ -98,8 +101,8 @@ function Dashboard() {
               )}
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </Box>
+        <Box sx={{ width: { xs: '100%', md: 'calc(50% - 12px)' } }}>
           <Card sx={{ boxShadow: 2, borderRadius: 3 }}>
             <CardContent>
               <Typography variant="h6" fontWeight={700} mb={2}>Recent Students</Typography>
@@ -120,11 +123,11 @@ function Dashboard() {
               )}
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
       {/* Tabs and chart (full width) */}
-      <Grid container spacing={3} mb={2}>
-        <Grid item xs={12}>
+      <Box sx={{ mb: 2 }}>
+        <Box sx={{ width: '100%' }}>
           <Card sx={{ boxShadow: 2, borderRadius: 3 }}>
             <CardContent>
               <Box mb={2} display="flex" gap={2}>
@@ -145,11 +148,11 @@ function Dashboard() {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
       {/* Upcoming Events (full width) */}
-      <Grid container spacing={3} mb={2}>
-        <Grid item xs={12}>
+      <Box sx={{ mb: 2 }}>
+        <Box sx={{ width: '100%' }}>
           <Card sx={{ boxShadow: 2, borderRadius: 3 }}>
             <CardContent>
               <Typography variant="h6" fontWeight={700} mb={2}><FaCalendarAlt style={{ marginRight: 8 }} /> Upcoming Events</Typography>
@@ -167,8 +170,8 @@ function Dashboard() {
               ))}
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 }

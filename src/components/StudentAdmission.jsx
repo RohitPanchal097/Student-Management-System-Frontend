@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchCourses, addCourse } from '../slices/coursesSlice';
 import { fetchAllBatches, addBatch } from '../slices/batchesSlice';
 import { addStudent } from '../slices/studentsSlice';
+import { Button, Card, CardContent, Typography, Box, Grid, Alert } from '@mui/material';
 
 function StudentAdmission() {
   const dispatch = useDispatch();
@@ -15,6 +16,14 @@ function StudentAdmission() {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedBatch, setSelectedBatch] = useState("");
   const [message, setMessage] = useState("");
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkResult, setBulkResult] = useState(null);
+  const fileInputRef = useRef();
+
+  // CSV Template columns
+  const csvHeaders = [
+    'name', 'father_name', 'dob', 'mobile', 'email', 'gender', 'admission_date', 'year', 'semester', 'course_name', 'batch_name', 'fees_total'
+  ];
 
   // Student form state
   const [form, setForm] = useState({
@@ -80,6 +89,46 @@ function StudentAdmission() {
       dispatch(fetchAllBatches());
     } catch (error) {
       setMessage("Error: " + error.message);
+    }
+  };
+
+  // Download CSV template
+  const handleDownloadTemplate = () => {
+    const csvContent = csvHeaders.join(",") + "\n";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "student_bulk_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Handle file select and upload
+  const handleBulkFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setBulkStatus("Uploading...");
+    setBulkResult(null);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('http://localhost:5000/api/students/bulk_upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBulkStatus(`Upload complete: ${data.success_count} added, ${data.error_count} errors.`);
+        setBulkResult(data);
+      } else {
+        setBulkStatus(data.error || 'Upload failed.');
+        setBulkResult(null);
+      }
+    } catch (err) {
+      setBulkStatus('Upload failed: ' + err.message);
+      setBulkResult(null);
     }
   };
 
@@ -401,6 +450,51 @@ function StudentAdmission() {
           </form>
         </div>
       </div>
+      <Box mt={4}>
+        <Card sx={{ background: '#232323', color: '#fff', borderRadius: 3, boxShadow: 3, mb: 4 }}>
+          <CardContent>
+            <Typography variant="h5" fontWeight={700} mb={2} color="#fff">Bulk Upload Students</Typography>
+            <Typography variant="body2" mb={2} color="#fff">
+              Download the CSV template, fill student data, and upload to add multiple students at once.
+            </Typography>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item>
+                <Button variant="contained" color="secondary" onClick={handleDownloadTemplate} sx={{ borderRadius: 2, fontWeight: 700 }}>
+                  Download Template
+                </Button>
+              </Grid>
+              <Grid item>
+                <Button variant="contained" component="label" color="primary" sx={{ borderRadius: 2, fontWeight: 700 }}>
+                  Upload CSV
+                  <input type="file" accept=".csv" hidden ref={fileInputRef} onChange={handleBulkFileChange} />
+                </Button>
+              </Grid>
+              {bulkStatus && (
+                <Grid item xs={12} mt={2}>
+                  <Alert severity="info">{bulkStatus}</Alert>
+                </Grid>
+              )}
+            </Grid>
+            {bulkResult && (
+              <Box mt={3}>
+                <Typography variant="subtitle1" color="#fff" fontWeight={600} mb={1}>Upload Summary</Typography>
+                <Typography variant="body2" color="#fff" mb={1}>
+                  Total: {bulkResult.total} &nbsp; | &nbsp; Success: {bulkResult.success_count} &nbsp; | &nbsp; Errors: {bulkResult.error_count}
+                </Typography>
+                {bulkResult.details && bulkResult.details.length > 0 && (
+                  <Box sx={{ maxHeight: 200, overflowY: 'auto', background: '#181818', borderRadius: 2, p: 2, mt: 1 }}>
+                    {bulkResult.details.map((row, idx) => (
+                      <Typography key={idx} variant="body2" color={row.status === 'success' ? 'success.main' : 'error.main'}>
+                        Row {row.row}: {row.status === 'success' ? 'Added' : `Error - ${row.error}`}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Box>
     </div>
   );
 }
