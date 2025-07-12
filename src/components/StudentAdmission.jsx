@@ -29,6 +29,15 @@ function StudentAdmission() {
     semester: "",
     course_id: "",
     batch_id: "",
+    fees_total: "",
+  });
+
+  // Initial payment state
+  const [initPayment, setInitPayment] = useState({
+    amount: "",
+    mode: "",
+    date: "",
+    note: "",
   });
 
   // Fetch courses and batches on mount
@@ -79,6 +88,10 @@ function StudentAdmission() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleInitPaymentChange = (e) => {
+    setInitPayment({ ...initPayment, [e.target.name]: e.target.value });
+  };
+
   const handleCourseChange = (e) => {
     const courseId = e.target.value;
     setSelectedCourse(courseId);
@@ -97,8 +110,19 @@ function StudentAdmission() {
     setMessage("");
     
     try {
-      await dispatch(addStudent(form)).unwrap();
-      setMessage("Student admitted successfully!");
+      // Add student with fees_total
+      const studentRes = await dispatch(addStudent(form)).unwrap();
+      let msg = "Student admitted successfully!";
+      // Add initial payment if provided
+      if (initPayment.amount && initPayment.mode && initPayment.date) {
+        await fetch(`http://localhost:5000/api/students/${studentRes.id}/add_fees_payment`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(initPayment),
+        });
+        msg += " Initial payment recorded.";
+      }
+      setMessage(msg);
       setForm({
         name: "",
         father_name: "",
@@ -111,7 +135,9 @@ function StudentAdmission() {
         semester: "",
         course_id: selectedCourse,
         batch_id: selectedBatch,
+        fees_total: "",
       });
+      setInitPayment({ amount: "", mode: "", date: "", note: "" });
     } catch (error) {
       setMessage("Error: " + error.message);
     }
@@ -305,6 +331,67 @@ function StudentAdmission() {
                 <option value="7th Semester">7th Semester</option>
                 <option value="8th Semester">8th Semester</option>
               </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Per Year Fees (₹)</label>
+              <input
+                className="form-control"
+                name="fees_total"
+                type="number"
+                min="0"
+                value={form.fees_total}
+                onChange={handleFormChange}
+                required
+              />
+            </div>
+            <div className="col-12">
+              <h6>Initial Payment (optional)</h6>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Amount Paid (₹)</label>
+              <input
+                className="form-control"
+                name="amount"
+                type="number"
+                min="0"
+                value={initPayment.amount}
+                onChange={handleInitPaymentChange}
+              />
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Payment Mode</label>
+              <select
+                className="form-select"
+                name="mode"
+                value={initPayment.mode}
+                onChange={handleInitPaymentChange}
+              >
+                <option value="">Select Mode</option>
+                <option value="Cash">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="Cheque">Cheque</option>
+                <option value="Card">Card</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Payment Date</label>
+              <input
+                className="form-control"
+                name="date"
+                type="date"
+                value={initPayment.date}
+                onChange={handleInitPaymentChange}
+              />
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Note</label>
+              <input
+                className="form-control"
+                name="note"
+                value={initPayment.note}
+                onChange={handleInitPaymentChange}
+              />
             </div>
             <div className="col-12">
               <button className="btn btn-success btn-lg" type="submit">
