@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchCourses } from '../slices/coursesSlice';
 import { fetchStudents } from '../slices/studentsSlice';
+import FeesHistorySidebar from './FeesHistorySidebar';
 
 const events = [
   { date: 'Tue, 6 Feb', title: 'School President Elections', time: '11:00 AM - 12:30 PM', tag: 'Today' },
@@ -77,134 +78,135 @@ function Dashboard() {
   }
 
   return (
-    <div>
-      {/* Stat cards */}
-      <div className="row g-4 mb-4">
-        {stats.map((s) => (
-          <div className="col-md-3" key={s.label}>
-            <div className={`card text-bg-${s.color} shadow h-100`}>
-              <div className="card-body d-flex align-items-center gap-3">
-                <div className="display-5">{s.icon}</div>
-                <div>
-                  <div className="fs-4 fw-bold">{s.value}</div>
-                  <div className="small text-uppercase">{s.label}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Course and Batch Summary */}
-      <div className="row g-4 mb-4">
-        <div className="col-md-6">
-          <div className="card shadow h-100">
-            <div className="card-header bg-dark border-bottom-0">
-              <h5 className="mb-0">Courses Overview</h5>
-            </div>
-            <div className="card-body bg-dark">
-              {courses.length > 0 ? (
-                <div className="list-group list-group-flush bg-transparent">
-                  {courses.map((course) => {
-                    const courseBatches = batches.filter(b => b.course_id === course.id);
-                    const courseStudents = students.filter(s => s.course_id === course.id);
-                    return (
-                      <div key={course.id} className="list-group-item bg-transparent border-secondary d-flex justify-content-between align-items-center">
-                        <div>
-                          <div className="fw-bold text-white">{course.name}</div>
-                          <div className="small text-secondary">{courseBatches.length} batches</div>
-                        </div>
-                        <span className="badge bg-primary rounded-pill">{courseStudents.length} students</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center text-secondary">
-                  <p>No courses added yet</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-6">
-          <div className="card shadow h-100">
-            <div className="card-header bg-dark border-bottom-0">
-              <h5 className="mb-0">Recent Students</h5>
-            </div>
-            <div className="card-body bg-dark">
-              {students.length > 0 ? (
-                <div className="list-group list-group-flush bg-transparent">
-                  {students.slice(0, 5).map((student) => (
-                    <div key={student.id} className="list-group-item bg-transparent border-secondary d-flex justify-content-between align-items-center">
-                      <div>
-                        <div className="fw-bold text-white">{student.name}</div>
-                        <div className="small text-secondary">{student.course} - {student.batch}</div>
-                      </div>
-                      <span className="badge bg-success rounded-pill">{student.year}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center text-secondary">
-                  <p>No students added yet</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs and chart */}
-      <div className="card mb-4 shadow">
-        <div className="card-header bg-dark border-bottom-0">
-          <ul className="nav nav-tabs card-header-tabs">
-            {tabLabels.map((t) => (
-              <li className="nav-item" key={t}>
-                <button className={`nav-link${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>{t}</button>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="card-body bg-dark">
-          <h5 className="card-title mb-4">Students Performance</h5>
-          {/* Simple bar chart using Bootstrap progress bars */}
-          <div className="row align-items-end" style={{ minHeight: 180 }}>
-            {tabData[tab].map((val, i) => (
-              <div className="col text-center" key={i}>
-                <div className="mb-2" style={{ height: 120, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                  <div style={{ width: 32 }}>
-                    <div className="bg-primary rounded-top" style={{ height: `${val}px`, minHeight: 10, transition: 'height 0.3s' }}></div>
+    <div className="row">
+      <div className="col-lg-8">
+        {/* Stat cards */}
+        <div className="row g-4 mb-4">
+          {stats.map((s) => (
+            <div className="col-md-3" key={s.label}>
+              <div className={`card text-bg-${s.color} shadow h-100`}>
+                <div className="card-body d-flex align-items-center gap-3">
+                  <div className="display-5">{s.icon}</div>
+                  <div>
+                    <div className="fs-4 fw-bold">{s.value}</div>
+                    <div className="small text-uppercase">{s.label}</div>
                   </div>
                 </div>
-                <div className="fw-bold text-white">{val}%</div>
-                <div className="small text-secondary">{classLabels[i]}</div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Upcoming Events */}
-      <div className="card shadow mb-4">
-        <div className="card-header bg-dark border-bottom-0">
-          <FaCalendarAlt className="me-2" /> Upcoming Events
-        </div>
-        <div className="card-body bg-dark">
-          {events.map((e, i) => (
-            <div key={i} className="d-flex align-items-center mb-3">
-              <div className="me-3 text-center" style={{ minWidth: 70 }}>
-                <div className="fw-bold text-white-50">{e.date}</div>
-              </div>
-              <div className="flex-grow-1">
-                <div className="fw-bold text-white">{e.title}</div>
-                <div className="small text-secondary">{e.time}</div>
-              </div>
-              <span className="badge bg-info ms-2">{e.tag}</span>
             </div>
           ))}
         </div>
+        {/* Course and Batch Summary */}
+        <div className="row g-4 mb-4">
+          <div className="col-md-6">
+            <div className="card shadow h-100">
+              <div className="card-header bg-dark border-bottom-0">
+                <h5 className="mb-0">Courses Overview</h5>
+              </div>
+              <div className="card-body bg-dark">
+                {courses.length > 0 ? (
+                  <div className="list-group list-group-flush bg-transparent">
+                    {courses.map((course) => {
+                      const courseBatches = batches.filter(b => b.course_id === course.id);
+                      const courseStudents = students.filter(s => s.course_id === course.id);
+                      return (
+                        <div key={course.id} className="list-group-item bg-transparent border-secondary d-flex justify-content-between align-items-center">
+                          <div>
+                            <div className="fw-bold text-white">{course.name}</div>
+                            <div className="small text-secondary">{courseBatches.length} batches</div>
+                          </div>
+                          <span className="badge bg-primary rounded-pill">{courseStudents.length} students</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center text-secondary">
+                    <p>No courses added yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="col-md-6">
+            <div className="card shadow h-100">
+              <div className="card-header bg-dark border-bottom-0">
+                <h5 className="mb-0">Recent Students</h5>
+              </div>
+              <div className="card-body bg-dark">
+                {students.length > 0 ? (
+                  <div className="list-group list-group-flush bg-transparent">
+                    {students.slice(0, 5).map((student) => (
+                      <div key={student.id} className="list-group-item bg-transparent border-secondary d-flex justify-content-between align-items-center">
+                        <div>
+                          <div className="fw-bold text-white">{student.name}</div>
+                          <div className="small text-secondary">{student.course} - {student.batch}</div>
+                        </div>
+                        <span className="badge bg-success rounded-pill">{student.year}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-secondary">
+                    <p>No students added yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Tabs and chart */}
+        <div className="card mb-4 shadow">
+          <div className="card-header bg-dark border-bottom-0">
+            <ul className="nav nav-tabs card-header-tabs">
+              {tabLabels.map((t) => (
+                <li className="nav-item" key={t}>
+                  <button className={`nav-link${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>{t}</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="card-body bg-dark">
+            <h5 className="card-title mb-4">Students Performance</h5>
+            {/* Simple bar chart using Bootstrap progress bars */}
+            <div className="row align-items-end" style={{ minHeight: 180 }}>
+              {tabData[tab].map((val, i) => (
+                <div className="col text-center" key={i}>
+                  <div className="mb-2" style={{ height: 120, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <div style={{ width: 32 }}>
+                      <div className="bg-primary rounded-top" style={{ height: `${val}px`, minHeight: 10, transition: 'height 0.3s' }}></div>
+                    </div>
+                  </div>
+                  <div className="fw-bold text-white">{val}%</div>
+                  <div className="small text-secondary">{classLabels[i]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* Upcoming Events */}
+        <div className="card shadow mb-4">
+          <div className="card-header bg-dark border-bottom-0">
+            <FaCalendarAlt className="me-2" /> Upcoming Events
+          </div>
+          <div className="card-body bg-dark">
+            {events.map((e, i) => (
+              <div key={i} className="d-flex align-items-center mb-3">
+                <div className="me-3 text-center" style={{ minWidth: 70 }}>
+                  <div className="fw-bold text-white-50">{e.date}</div>
+                </div>
+                <div className="flex-grow-1">
+                  <div className="fw-bold text-white">{e.title}</div>
+                  <div className="small text-secondary">{e.time}</div>
+                </div>
+                <span className="badge bg-info ms-2">{e.tag}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="col-lg-4">
+        <FeesHistorySidebar courses={courses} batches={batches} />
       </div>
     </div>
   );

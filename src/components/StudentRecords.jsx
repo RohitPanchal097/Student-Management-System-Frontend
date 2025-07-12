@@ -12,6 +12,126 @@ const fetchFeesSummary = async (studentId) => {
   return { totalPaid, history };
 };
 
+function FeesHistorySidebar({ courses, batches }) {
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [courseId, setCourseId] = useState("");
+  const [batchId, setBatchId] = useState("");
+  const [year, setYear] = useState("");
+  const [semester, setSemester] = useState("");
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const filterBatches = courseId ? batches.filter(b => b.course_id === parseInt(courseId)) : batches;
+
+  const fetchPayments = async () => {
+    setLoading(true);
+    const params = [];
+    if (from) params.push(`from=${from}`);
+    if (to) params.push(`to=${to}`);
+    if (courseId) params.push(`course_id=${courseId}`);
+    if (batchId) params.push(`batch_id=${batchId}`);
+    if (year) params.push(`year=${encodeURIComponent(year)}`);
+    if (semester) params.push(`semester=${encodeURIComponent(semester)}`);
+    const url = `http://localhost:5000/api/fees_payments${params.length ? '?' + params.join('&') : ''}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    setPayments(data);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchPayments(); }, []); // initial load
+
+  return (
+    <div className="card shadow rounded-4 p-3 mb-4" style={{ minWidth: 350, maxWidth: 500 }}>
+      <h5 className="mb-3">Fees History / Collection</h5>
+      <form className="row g-2 mb-2" onSubmit={e => { e.preventDefault(); fetchPayments(); }}>
+        <div className="col-6">
+          <label className="form-label">From</label>
+          <input type="date" className="form-control" value={from} onChange={e => setFrom(e.target.value)} />
+        </div>
+        <div className="col-6">
+          <label className="form-label">To</label>
+          <input type="date" className="form-control" value={to} onChange={e => setTo(e.target.value)} />
+        </div>
+        <div className="col-6">
+          <label className="form-label">Course</label>
+          <select className="form-select" value={courseId} onChange={e => setCourseId(e.target.value)}>
+            <option value="">All</option>
+            {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <div className="col-6">
+          <label className="form-label">Batch</label>
+          <select className="form-select" value={batchId} onChange={e => setBatchId(e.target.value)}>
+            <option value="">All</option>
+            {filterBatches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        </div>
+        <div className="col-6">
+          <label className="form-label">Year</label>
+          <select className="form-select" value={year} onChange={e => setYear(e.target.value)}>
+            <option value="">All</option>
+            <option value="1st Year">1st Year</option>
+            <option value="2nd Year">2nd Year</option>
+            <option value="3rd Year">3rd Year</option>
+            <option value="4th Year">4th Year</option>
+          </select>
+        </div>
+        <div className="col-6">
+          <label className="form-label">Semester</label>
+          <select className="form-select" value={semester} onChange={e => setSemester(e.target.value)}>
+            <option value="">All</option>
+            <option value="1st Semester">1st Semester</option>
+            <option value="2nd Semester">2nd Semester</option>
+            <option value="3rd Semester">3rd Semester</option>
+            <option value="4th Semester">4th Semester</option>
+            <option value="5th Semester">5th Semester</option>
+            <option value="6th Semester">6th Semester</option>
+            <option value="7th Semester">7th Semester</option>
+            <option value="8th Semester">8th Semester</option>
+          </select>
+        </div>
+        <div className="col-12 d-grid">
+          <button className="btn btn-primary" type="submit">Apply Filters</button>
+        </div>
+      </form>
+      <div className="table-responsive" style={{ maxHeight: 300, overflowY: 'auto' }}>
+        <table className="table table-bordered table-sm">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Student</th>
+              <th>Course</th>
+              <th>Batch</th>
+              <th>Year</th>
+              <th>Amount</th>
+              <th>Mode</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? <tr><td colSpan={8}>Loading...</td></tr> :
+              payments.length === 0 ? <tr><td colSpan={8}>No records</td></tr> :
+              payments.map((p, i) => (
+                <tr key={p.id || i}>
+                  <td>{p.date}</td>
+                  <td>{p.student_name}</td>
+                  <td>{p.course}</td>
+                  <td>{p.batch}</td>
+                  <td>{p.year}</td>
+                  <td>{p.amount}</td>
+                  <td>{p.mode}</td>
+                  <td>{p.note}</td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function StudentRecords() {
   const dispatch = useDispatch();
   const { items: courses, status: coursesStatus } = useSelector(state => state.courses);
@@ -125,6 +245,7 @@ function StudentRecords() {
       semester: student.semester || "",
       course_id: student.course_id ? String(student.course_id) : "",
       batch_id: student.batch_id ? String(student.batch_id) : "",
+      fees_total: student.fees_total !== undefined && student.fees_total !== null ? String(student.fees_total) : "",
     });
   };
 
@@ -183,9 +304,10 @@ function StudentRecords() {
         semester: editForm.semester,
         course_id: editForm.course_id,
         batch_id: editForm.batch_id,
+        fees_total: editForm.fees_total,
       };
       await dispatch(updateStudent({ id: editStudent.id, data: payload })).unwrap();
-      await dispatch(fetchStudents());
+      await dispatch(fetchStudents()); // Ensure table refreshes with latest data
       setEditStudent(null);
       setMessage("Student updated successfully!");
     } catch (error) {
@@ -230,6 +352,16 @@ function StudentRecords() {
     setHistoryModal({ show: true, student, history });
   };
   const closeHistoryModal = () => setHistoryModal({ show: false, student: null, history: [] });
+
+  // Delete payment from history
+  const handleDeletePayment = async (paymentId, studentId) => {
+    await fetch(`http://localhost:5000/api/fees_payments/${paymentId}`, { method: 'DELETE' });
+    // Refresh history and summary
+    const { history, totalPaid } = await fetchFeesSummary(studentId);
+    setHistoryModal(hm => ({ ...hm, history }));
+    setFeesSummary(s => ({ ...s, [studentId]: { totalPaid, due: Number(displayed.find(stu => stu.id === studentId)?.fees_total || 0) - totalPaid } }));
+    await dispatch(fetchStudents()); // Also refresh students list for table
+  };
 
   // Export to CSV
   const exportCSV = () => {
@@ -386,7 +518,7 @@ function StudentRecords() {
                   <td>{s.semester}</td>
                   <td>{s.mobile}</td>
                   <td>{s.email}</td>
-                  <td>{s.fees_total || 0}</td>
+                  <td>{s.fees_total ? Number(s.fees_total) : 0}</td>
                   <td>{feesSummary[s.id]?.totalPaid ?? '...'}</td>
                   <td>{feesSummary[s.id]?.due ?? '...'}</td>
                   <td>
@@ -573,6 +705,18 @@ function StudentRecords() {
                           <option value="8th Semester">8th Semester</option>
                         </select>
                       </div>
+                      <div className="col-md-6">
+                        <label className="form-label">Per Year Fees (₹)</label>
+                        <input
+                          className="form-control"
+                          name="fees_total"
+                          type="number"
+                          min="0"
+                          value={editForm.fees_total}
+                          onChange={handleEditChange}
+                          required
+                        />
+                      </div>
                     </div>
                     <div className="col-12 mt-3">
                       <h6>Upload Documents</h6>
@@ -716,6 +860,7 @@ function StudentRecords() {
                         <th>Amount</th>
                         <th>Mode</th>
                         <th>Note</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -725,6 +870,9 @@ function StudentRecords() {
                           <td>{h.amount}</td>
                           <td>{h.mode}</td>
                           <td>{h.note}</td>
+                          <td>
+                            <button className="btn btn-danger btn-sm" onClick={() => handleDeletePayment(h.id, historyModal.student.id)}>Delete</button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
