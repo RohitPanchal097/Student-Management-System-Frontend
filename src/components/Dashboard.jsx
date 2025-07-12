@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchCourses } from '../slices/coursesSlice';
 import { fetchStudents } from '../slices/studentsSlice';
-import FeesHistorySidebar from './FeesHistorySidebar';
+import { Grid, Card, CardContent, Typography, Box, Chip, Divider, Button } from '@mui/material';
 
 const events = [
   { date: 'Tue, 6 Feb', title: 'School President Elections', time: '11:00 AM - 12:30 PM', tag: 'Today' },
@@ -27,7 +27,6 @@ function Dashboard() {
   const { items: batches } = useSelector(state => state.batches);
   const [tab, setTab] = useState('Results');
 
-  // Fetch data on component mount
   useEffect(() => {
     if (coursesStatus === 'idle') {
       dispatch(fetchCourses());
@@ -37,178 +36,140 @@ function Dashboard() {
     }
   }, [dispatch, coursesStatus, studentsStatus]);
 
-  // Calculate real statistics
   const stats = [
-    { 
-      label: 'Students', 
-      value: students.length, 
-      icon: <FaUserGraduate size={28} />, 
-      color: 'primary' 
-    },
-    { 
-      label: 'Courses', 
-      value: courses.length, 
-      icon: <FaChalkboardTeacher size={28} />, 
-      color: 'success' 
-    },
-    { 
-      label: 'Batches', 
-      value: batches.length, 
-      icon: <FaUsers size={28} />, 
-      color: 'info' 
-    },
-    { 
-      label: 'Active', 
-      value: students.filter(s => s.status !== 'inactive').length, 
-      icon: <FaUserTie size={28} />, 
-      color: 'warning' 
-    },
+    { label: 'Students', value: students.length, icon: <FaUserGraduate size={28} />, color: '#22335b', bg: '#e3eafc' },
+    { label: 'Courses', value: courses.length, icon: <FaChalkboardTeacher size={28} />, color: '#1abc9c', bg: '#e0f7f4' },
+    { label: 'Batches', value: batches.length, icon: <FaUsers size={28} />, color: '#3498db', bg: '#e3f1fc' },
+    { label: 'Active', value: students.filter(s => s.status !== 'inactive').length, icon: <FaUserTie size={28} />, color: '#ff9800', bg: '#fff3e0' },
   ];
 
   const loading = coursesStatus === 'loading' || studentsStatus === 'loading';
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <div className="spinner-border text-primary" role="status">
           <span className="visually-hidden">Loading...</span>
         </div>
-      </div>
+      </Box>
     );
   }
 
   return (
-    <div className="row">
-      <div className="col-lg-8">
-        {/* Stat cards */}
-        <div className="row g-4 mb-4">
-          {stats.map((s) => (
-            <div className="col-md-3" key={s.label}>
-              <div className={`card text-bg-${s.color} shadow h-100`}>
-                <div className="card-body d-flex align-items-center gap-3">
-                  <div className="display-5">{s.icon}</div>
-                  <div>
-                    <div className="fs-4 fw-bold">{s.value}</div>
-                    <div className="small text-uppercase">{s.label}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        {/* Course and Batch Summary */}
-        <div className="row g-4 mb-4">
-          <div className="col-md-6">
-            <div className="card shadow h-100">
-              <div className="card-header bg-dark border-bottom-0">
-                <h5 className="mb-0">Courses Overview</h5>
-              </div>
-              <div className="card-body bg-dark">
-                {courses.length > 0 ? (
-                  <div className="list-group list-group-flush bg-transparent">
-                    {courses.map((course) => {
-                      const courseBatches = batches.filter(b => b.course_id === course.id);
-                      const courseStudents = students.filter(s => s.course_id === course.id);
-                      return (
-                        <div key={course.id} className="list-group-item bg-transparent border-secondary d-flex justify-content-between align-items-center">
-                          <div>
-                            <div className="fw-bold text-white">{course.name}</div>
-                            <div className="small text-secondary">{courseBatches.length} batches</div>
-                          </div>
-                          <span className="badge bg-primary rounded-pill">{courseStudents.length} students</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center text-secondary">
-                    <p>No courses added yet</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="col-md-6">
-            <div className="card shadow h-100">
-              <div className="card-header bg-dark border-bottom-0">
-                <h5 className="mb-0">Recent Students</h5>
-              </div>
-              <div className="card-body bg-dark">
-                {students.length > 0 ? (
-                  <div className="list-group list-group-flush bg-transparent">
-                    {students.slice(0, 5).map((student) => (
-                      <div key={student.id} className="list-group-item bg-transparent border-secondary d-flex justify-content-between align-items-center">
-                        <div>
-                          <div className="fw-bold text-white">{student.name}</div>
-                          <div className="small text-secondary">{student.course} - {student.batch}</div>
-                        </div>
-                        <span className="badge bg-success rounded-pill">{student.year}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center text-secondary">
-                    <p>No students added yet</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Tabs and chart */}
-        <div className="card mb-4 shadow">
-          <div className="card-header bg-dark border-bottom-0">
-            <ul className="nav nav-tabs card-header-tabs">
-              {tabLabels.map((t) => (
-                <li className="nav-item" key={t}>
-                  <button className={`nav-link${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>{t}</button>
-                </li>
+    <Box sx={{ width: '100%', mx: 0, px: 0 }}>
+      {/* Top stats cards (side by side, responsive) */}
+      <Grid container spacing={3} mb={2}>
+        {stats.map((s) => (
+          <Grid item xs={12} sm={6} md={3} key={s.label}>
+            <Card sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 2, py: 3, boxShadow: 3, background: s.bg }}>
+              <Box sx={{ color: s.color }}>{s.icon}</Box>
+              <Box>
+                <Typography variant="h5" fontWeight={700}>{s.value}</Typography>
+                <Typography variant="body2" color="text.secondary" fontWeight={600}>{s.label.toUpperCase()}</Typography>
+              </Box>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+      {/* Courses Overview & Recent Students (full width) */}
+      <Grid container spacing={3} mb={2}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ boxShadow: 2, borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight={700} mb={2}>Courses Overview</Typography>
+              {courses.length > 0 ? (
+                <Box>
+                  {courses.map((course) => {
+                    const courseBatches = batches.filter(b => b.course_id === course.id);
+                    const courseStudents = students.filter(s => s.course_id === course.id);
+                    return (
+                      <Box key={course.id} display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                        <Box>
+                          <Typography fontWeight={700}>{course.name}</Typography>
+                          <Typography variant="body2" color="text.secondary">{courseBatches.length} batches</Typography>
+                        </Box>
+                        <Chip label={`${courseStudents.length} students`} color="primary" variant="outlined" />
+                      </Box>
+                    );
+                  })}
+                </Box>
+              ) : (
+                <Typography color="text.secondary">No courses added yet</Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ boxShadow: 2, borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight={700} mb={2}>Recent Students</Typography>
+              {students.length > 0 ? (
+                <Box>
+                  {students.slice(0, 5).map((student) => (
+                    <Box key={student.id} display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                      <Box>
+                        <Typography fontWeight={700}>{student.name}</Typography>
+                        <Typography variant="body2" color="text.secondary">{student.course} - {student.batch}</Typography>
+                      </Box>
+                      <Chip label={student.year} color="success" variant="filled" />
+                    </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Typography color="text.secondary">No students added yet</Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+      {/* Tabs and chart (full width) */}
+      <Grid container spacing={3} mb={2}>
+        <Grid item xs={12}>
+          <Card sx={{ boxShadow: 2, borderRadius: 3 }}>
+            <CardContent>
+              <Box mb={2} display="flex" gap={2}>
+                {tabLabels.map((t) => (
+                  <Button key={t} variant={tab === t ? 'contained' : 'outlined'} color="primary" onClick={() => setTab(t)} sx={{ borderRadius: 2, fontWeight: 700 }}>{t}</Button>
+                ))}
+              </Box>
+              <Typography variant="h6" fontWeight={700} mb={2}>Students Performance</Typography>
+              {/* Simple bar chart using Box (replace with recharts later) */}
+              <Box display="flex" alignItems="end" gap={3} minHeight={180}>
+                {tabData[tab].map((val, i) => (
+                  <Box key={i} textAlign="center" flex={1}>
+                    <Box sx={{ height: val * 1.2, background: '#22335b', borderRadius: 2, mb: 1, transition: 'height 0.3s' }} />
+                    <Typography fontWeight={700}>{val}%</Typography>
+                    <Typography variant="body2" color="text.secondary">{classLabels[i]}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+      {/* Upcoming Events (full width) */}
+      <Grid container spacing={3} mb={2}>
+        <Grid item xs={12}>
+          <Card sx={{ boxShadow: 2, borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight={700} mb={2}><FaCalendarAlt style={{ marginRight: 8 }} /> Upcoming Events</Typography>
+              {events.map((e, i) => (
+                <Box key={i} display="flex" alignItems="center" mb={2}>
+                  <Box minWidth={90} textAlign="center">
+                    <Typography fontWeight={700} color="text.secondary">{e.date}</Typography>
+                  </Box>
+                  <Box flex={1}>
+                    <Typography fontWeight={700}>{e.title}</Typography>
+                    <Typography variant="body2" color="text.secondary">{e.time}</Typography>
+                  </Box>
+                  <Chip label={e.tag} color="info" variant="filled" sx={{ ml: 2 }} />
+                </Box>
               ))}
-            </ul>
-          </div>
-          <div className="card-body bg-dark">
-            <h5 className="card-title mb-4">Students Performance</h5>
-            {/* Simple bar chart using Bootstrap progress bars */}
-            <div className="row align-items-end" style={{ minHeight: 180 }}>
-              {tabData[tab].map((val, i) => (
-                <div className="col text-center" key={i}>
-                  <div className="mb-2" style={{ height: 120, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                    <div style={{ width: 32 }}>
-                      <div className="bg-primary rounded-top" style={{ height: `${val}px`, minHeight: 10, transition: 'height 0.3s' }}></div>
-                    </div>
-                  </div>
-                  <div className="fw-bold text-white">{val}%</div>
-                  <div className="small text-secondary">{classLabels[i]}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        {/* Upcoming Events */}
-        <div className="card shadow mb-4">
-          <div className="card-header bg-dark border-bottom-0">
-            <FaCalendarAlt className="me-2" /> Upcoming Events
-          </div>
-          <div className="card-body bg-dark">
-            {events.map((e, i) => (
-              <div key={i} className="d-flex align-items-center mb-3">
-                <div className="me-3 text-center" style={{ minWidth: 70 }}>
-                  <div className="fw-bold text-white-50">{e.date}</div>
-                </div>
-                <div className="flex-grow-1">
-                  <div className="fw-bold text-white">{e.title}</div>
-                  <div className="small text-secondary">{e.time}</div>
-                </div>
-                <span className="badge bg-info ms-2">{e.tag}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="col-lg-4">
-        <FeesHistorySidebar courses={courses} batches={batches} />
-      </div>
-    </div>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }
 
