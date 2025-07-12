@@ -4,6 +4,14 @@ import { fetchCourses } from '../slices/coursesSlice';
 import { fetchAllBatches, fetchBatches } from '../slices/batchesSlice';
 import { fetchStudents, updateStudent, deleteStudent } from '../slices/studentsSlice';
 
+// Helper to fetch total paid and history for a student
+const fetchFeesSummary = async (studentId) => {
+  const res = await fetch(`http://localhost:5000/api/students/${studentId}/fees_history`);
+  const history = await res.json();
+  const totalPaid = history.reduce((sum, h) => sum + Number(h.amount || 0), 0);
+  return { totalPaid, history };
+};
+
 function StudentRecords() {
   const dispatch = useDispatch();
   const { items: courses, status: coursesStatus } = useSelector(state => state.courses);
@@ -21,6 +29,12 @@ function StudentRecords() {
   const [editForm, setEditForm] = useState({});
   const [showConfirm, setShowConfirm] = useState({ show: false, id: null });
   const [message, setMessage] = useState("");
+
+  // Fees modals state
+  const [feesModal, setFeesModal] = useState({ show: false, student: null });
+  const [historyModal, setHistoryModal] = useState({ show: false, student: null, history: [] });
+  const [feesForm, setFeesForm] = useState({ amount: '', mode: '', date: '', note: '' });
+  const [feesSummary, setFeesSummary] = useState({}); // { [studentId]: { totalPaid, due } }
 
   // Add a function to reset all filters
   const resetFilters = () => {
@@ -79,6 +93,22 @@ function StudentRecords() {
       setDisplayed(students);
     }
   }, [filterCourse, filterBatch, searchName, students]);
+
+  // Fetch fees summary for displayed students
+  useEffect(() => {
+    const fetchAll = async () => {
+      const summary = {};
+      for (const s of displayed) {
+        const { totalPaid } = await fetchFeesSummary(s.id);
+        summary[s.id] = {
+          totalPaid,
+          due: Number(s.fees_total || 0) - totalPaid,
+        };
+      }
+      setFeesSummary(summary);
+    };
+    if (displayed.length) fetchAll();
+  }, [displayed]);
 
   // Edit logic
   const openEdit = (student) => {
@@ -172,6 +202,34 @@ function StudentRecords() {
       setMessage("Error: " + error.message);
     }
   };
+
+  // Handle update fees
+  const openFeesModal = (student) => {
+    setFeesForm({ amount: '', mode: '', date: '', note: '' });
+    setFeesModal({ show: true, student });
+  };
+  const handleFeesFormChange = (e) => {
+    setFeesForm({ ...feesForm, [e.target.name]: e.target.value });
+  };
+  const handleFeesSubmit = async (e) => {
+    e.preventDefault();
+    await fetch(`http://localhost:5000/api/students/${feesModal.student.id}/add_fees_payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(feesForm),
+    });
+    setFeesModal({ show: false, student: null });
+    // Refresh summary
+    const { totalPaid } = await fetchFeesSummary(feesModal.student.id);
+    setFeesSummary(s => ({ ...s, [feesModal.student.id]: { totalPaid, due: Number(feesModal.student.fees_total || 0) - totalPaid } }));
+  };
+
+  // Handle view history
+  const openHistoryModal = async (student) => {
+    const { history } = await fetchFeesSummary(student.id);
+    setHistoryModal({ show: true, student, history });
+  };
+  const closeHistoryModal = () => setHistoryModal({ show: false, student: null, history: [] });
 
   // Export to CSV
   const exportCSV = () => {
@@ -310,6 +368,10 @@ function StudentRecords() {
                 <th>Semester</th>
                 <th>Mobile</th>
                 <th>Email</th>
+                <th>Fees Total</th>
+                <th>Paid</th>
+                <th>Due</th>
+                <th>Fees Actions</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -324,6 +386,13 @@ function StudentRecords() {
                   <td>{s.semester}</td>
                   <td>{s.mobile}</td>
                   <td>{s.email}</td>
+                  <td>{s.fees_total || 0}</td>
+                  <td>{feesSummary[s.id]?.totalPaid ?? '...'}</td>
+                  <td>{feesSummary[s.id]?.due ?? '...'}</td>
+                  <td>
+                    <button className="btn btn-sm btn-outline-success me-1" onClick={() => openFeesModal(s)}>Update Fees</button>
+                    <button className="btn btn-sm btn-outline-info" onClick={() => openHistoryModal(s)}>View History</button>
+                  </td>
                   <td>
                     <div className="btn-group btn-group-sm">
                       <button 
@@ -579,6 +648,90 @@ function StudentRecords() {
                   >
                     Delete
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Update Fees Modal */}
+        {feesModal.show && (
+          <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="modal-dialog">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Update Fees for {feesModal.student.name}</h5>
+                  <button type="button" className="btn-close" onClick={() => setFeesModal({ show: false, student: null })}></button>
+                </div>
+                <form onSubmit={handleFeesSubmit}>
+                  <div className="modal-body">
+                    <div className="mb-2">
+                      <label className="form-label">Amount (₹)</label>
+                      <input className="form-control" name="amount" type="number" min="0" value={feesForm.amount} onChange={handleFeesFormChange} required />
+                    </div>
+                    <div className="mb-2">
+                      <label className="form-label">Mode</label>
+                      <select className="form-select" name="mode" value={feesForm.mode} onChange={handleFeesFormChange} required>
+                        <option value="">Select Mode</option>
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Card">Card</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div className="mb-2">
+                      <label className="form-label">Date</label>
+                      <input className="form-control" name="date" type="date" value={feesForm.date} onChange={handleFeesFormChange} required />
+                    </div>
+                    <div className="mb-2">
+                      <label className="form-label">Note</label>
+                      <input className="form-control" name="note" value={feesForm.note} onChange={handleFeesFormChange} />
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button type="button" className="btn btn-secondary" onClick={() => setFeesModal({ show: false, student: null })}>Cancel</button>
+                    <button type="submit" className="btn btn-success">Save Payment</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Fees History Modal */}
+        {historyModal.show && (
+          <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="modal-dialog">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Fees History for {historyModal.student.name}</h5>
+                  <button type="button" className="btn-close" onClick={closeHistoryModal}></button>
+                </div>
+                <div className="modal-body">
+                  <table className="table table-bordered table-sm">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Mode</th>
+                        <th>Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historyModal.history.map((h, i) => (
+                        <tr key={i}>
+                          <td>{h.date}</td>
+                          <td>{h.amount}</td>
+                          <td>{h.mode}</td>
+                          <td>{h.note}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={closeHistoryModal}>Close</button>
                 </div>
               </div>
             </div>
